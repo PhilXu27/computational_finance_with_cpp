@@ -42,7 +42,11 @@ void computeSampleCovariance(double** data, int numAssets, int numReturns, doubl
     }
 }
 
-void computeReturnStats(const double* returns, int length, double& mean, double& stdev, double& sharpeRatio) {
+void computeReturnStats(
+    const double* returns, int length,
+    double& mean, double& stdev,
+    double& meanAnnualized, double& stdevAnnualized,
+    double& sharpeRatio) {
     // Step 1: Compute mean and variance
     double sum = 0.0, sumSq = 0.0;
     int count = 0;
@@ -54,11 +58,12 @@ void computeReturnStats(const double* returns, int length, double& mean, double&
             count++;
         }
     }
-    double dailyMean = sum / count;
-    double dailyVar = (sumSq - count * dailyMean * dailyMean) / (count - 1);
+    mean = sum / count;
+    double dailyVar = (sumSq - count * mean * mean) / (count - 1);
 
     // Step 2: Annualize (assume 252 trading days)
-    mean = dailyMean * 252;
-    stdev = std::sqrt(dailyVar * 252);
+    meanAnnualized = mean * 252;
+    stdev = std::sqrt(dailyVar);
+    stdevAnnualized = std::sqrt(dailyVar * 252);
     sharpeRatio = mean / stdev;
 }

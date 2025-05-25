@@ -6,21 +6,70 @@
 #include "optimizer.h"
 #include "save_data.h"
 #include <iostream>
+#include <sstream>
 #include <iomanip> // For formatting
 
-void runMultipleRollingBacktest(){}
+void runMultipleRollingBacktest(
+    double** returnMatrix,
+    int numAssets,
+    int numPeriods,
+    int inSampleSize,
+    int outSampleSize,
+    const std::vector<double>& targetReturns,
+    double tol,
+    int maxIter
+) {
+    std::cout << "=== Running Multiple Rolling Backtests ===" << std::endl;
+
+    std::cout << "TargetReturn,Mean,Stdev,Sharpe" << std::endl;
+
+    for (double targetReturn : targetReturns) {
+        // Format suffix like "_r0050" for target return = 0.005
+        std::ostringstream oss;
+        oss << "_r" << std::fixed << std::setprecision(4) << targetReturn * 10000;
+
+        double mean, stdev, meanAnnualized, stdevAnnualized, sharpe;
+        runRollingBacktest(
+            returnMatrix,
+            numAssets,
+            numPeriods,
+            inSampleSize,
+            outSampleSize,
+            targetReturn,
+            tol,
+            maxIter,
+            oss.str(),   // fileSuffix
+            mean,
+            stdev,
+            meanAnnualized,
+            stdevAnnualized,
+            sharpe
+        );
+        std::cout << "Target Return: " << targetReturn <<
+            ", Mean: " << mean <<
+            ", Stdev: " << stdev <<
+            ", Annualized Mean: " << meanAnnualized <<
+            ", Annualized Stdev: " << stdevAnnualized <<
+            ", Sharpe: " << sharpe <<
+            std::endl;
+    }
+}
 
 void runRollingBacktest(
     double** returnMatrix, int numAssets, int numPeriods, int inSampleSize, int outSampleSize, double targetReturn,
-    double tol, int maxIter
+    double tol, int maxIter,
+    const std::string& fileSuffix,  // e.g. "_r005" or "_r010"
+    double& meanOut,
+    double& stdevOut,
+    double& meanAnnualizedOut,
+    double& stdevAnnualizedOut,
+    double& sharpeOut
     ) {
 	double* portfolioReturns = new double[numPeriods];
     for (int t = 0; t < numPeriods; ++t)
         portfolioReturns[t] = NAN;
 
     for (int start = 0; start + inSampleSize + outSampleSize <= numPeriods; start += outSampleSize) {
-        std::cout << "Rolling window starting at t = " << start << std::endl;
-
         // Step 0: Allocate sliced in-sample and out-sample windows
         double** inSample = new double*[numAssets];
         double** outSample = new double*[numAssets];
@@ -52,16 +101,8 @@ void runRollingBacktest(
                 portRet += optimalWeights[i] * outSample[i][t];
             portfolioReturns[timeIndex] = portRet;
         }
-//        int tStep = start + inSampleSize;  // current OOS start index in global time
-//        saveWeightsAndReturnsByTime(
-//            tStep,
-//            optimalWeights,
-//            outSample,
-//            numAssets,
-//            0  // we use the first day of the OOS window for debug (can change to other days)
-//        );
 
-        saveReturnsToCSV("oos_portfolio_returns.csv", portfolioReturns, numPeriods);
+
         // Cleanup
         delete[] inSampleMean;
         delete[] optimalWeights;
@@ -71,9 +112,10 @@ void runRollingBacktest(
         delete[] inSample;
         delete[] outSample;
     }
+
     // ======= Summary: Realized OOS Portfolio Statistics =======
-    double mean, stdev, sharpe;
-    computeReturnStats(portfolioReturns, numPeriods, mean, stdev, sharpe);
-    std::cout << "Annualized Mean: " << mean << ", Stdev: " << stdev << ", Sharpe: " << sharpe << std::endl;
+    std::string filename = "oos_portfolio_returns" + fileSuffix + ".csv";
+    saveReturnsToCSV(filename.c_str(), portfolioReturns, numPeriods);
+    computeReturnStats(portfolioReturns, numPeriods, meanOut, stdevOut, sharpeOut, meanAnnualizedOut, stdevAnnualizedOut);
 	delete[] portfolioReturns;
 }

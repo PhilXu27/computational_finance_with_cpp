@@ -7,3 +7,13 @@
 //		}
 //		std::cout << "  [Check] Sum of Weights = " << std::fixed << std::setprecision(6) << weightSum
 //        		  << ", Expected Return = " << expectedReturnAchieved << std::endl;
+
+
+//        int tStep = start + inSampleSize;  // current OOS start index in global time
+//        saveWeightsAndReturnsByTime(
+//            tStep,
+//            optimalWeights,
+//            outSample,
+//            numAssets,
+//            0  // we use the first day of the OOS window for debug (can change to other days)
+//        );

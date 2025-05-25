@@ -1,4 +1,5 @@
 #include <iostream>
+#include <vector>
 #include "read_data.h"
 #include "backtester.h"
 
@@ -8,7 +9,7 @@ int main() {
     const int inSampleSize = 100;
     const int outSampleSize = 12;
     const int runPeriods = 2;
-    const double targetReturn = 0.1;
+    // const double targetReturn = 0.1;
     const int maxIter = 100;
     const double tol = 1e-6;
     const std::string filePath = "data/asset_returns.csv";
@@ -18,11 +19,18 @@ int main() {
         std::cerr << "Failed to load return data." << std::endl;
         return 1;
     }
-
-    runRollingBacktest(
+    std::vector<double> totalReturns;
+    for (int i = 1; i < 21; ++i) {
+        totalReturns.push_back(0.0 + i * 0.005);
+    }
+    runMultipleRollingBacktest(
         returnMatrix, numAssets, runPeriods * outSampleSize + outSampleSize + inSampleSize, inSampleSize, outSampleSize,
-        targetReturn, tol, maxIter
+        totalReturns, tol, maxIter
         );
+    // runRollingBacktest(
+    //     returnMatrix, numAssets, runPeriods * outSampleSize + outSampleSize + inSampleSize, inSampleSize, outSampleSize,
+    //     targetReturn, tol, maxIter
+    //     );
 
     for (int i = 0; i < numAssets; ++i) {
         delete[] returnMatrix[i];
