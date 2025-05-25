@@ -8,6 +8,7 @@ SRCS = src/main.cpp \
        src/statistics.cpp \
        src/optimizer.cpp \
        src/backtester.cpp \
+       src/save_data.cpp\
        lib/csv.cpp
 
 # Object files

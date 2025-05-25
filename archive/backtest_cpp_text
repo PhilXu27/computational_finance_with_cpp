@@ -1,0 +1,9 @@
+//		// --- Sanity Check: Portfolio Constraints ---
+//		double weightSum = 0.0;
+//		double expectedReturnAchieved = 0.0;
+//		for (int i = 0; i < numAssets; ++i) {
+//    		weightSum += optimalWeights[i];
+//    		expectedReturnAchieved += optimalWeights[i] * inSampleMean[i];
+//		}
+//		std::cout << "  [Check] Sum of Weights = " << std::fixed << std::setprecision(6) << weightSum
+//        		  << ", Expected Return = " << expectedReturnAchieved << std::endl;

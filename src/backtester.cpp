@@ -4,15 +4,23 @@
 #include "backtester.h"
 #include "statistics.h"
 #include "optimizer.h"
+#include "save_data.h"
 #include <iostream>
 #include <iomanip> // For formatting
+
+void runMultipleRollingBacktest(){}
 
 void runRollingBacktest(
     double** returnMatrix, int numAssets, int numPeriods, int inSampleSize, int outSampleSize, double targetReturn,
     double tol, int maxIter
     ) {
+	double* portfolioReturns = new double[numPeriods];
+    for (int t = 0; t < numPeriods; ++t)
+        portfolioReturns[t] = NAN;
 
     for (int start = 0; start + inSampleSize + outSampleSize <= numPeriods; start += outSampleSize) {
+        std::cout << "Rolling window starting at t = " << start << std::endl;
+
         // Step 0: Allocate sliced in-sample and out-sample windows
         double** inSample = new double*[numAssets];
         double** outSample = new double*[numAssets];
@@ -27,35 +35,45 @@ void runRollingBacktest(
         double** inSampleCov = new double*[numAssets];
         for (int i = 0; i < numAssets; ++i)
             inSampleCov[i] = new double[numAssets];
+
         // Compute average return for both windows
         computeMeanVector(inSample, numAssets, inSampleSize, inSampleMean);
         computeSampleCovariance(inSample, numAssets, inSampleSize, inSampleCov);
+
         // Step 2: Solve the Markowitz optimization
         double* optimalWeights = new double[numAssets];
-
         solveMarkowitzPortfolio(inSampleCov, inSampleMean, targetReturn, numAssets, optimalWeights, tol, maxIter);
-
         // Step 3: Evaluate OOS performance
-        double oosReturn = 0.0;
+        // Compute and store OOS portfolio returns (time-aligned)
         for (int t = 0; t < outSampleSize; ++t) {
-            double portfolioReturn = 0.0;
+            int timeIndex = start + inSampleSize + t;
+            double portRet = 0.0;
             for (int i = 0; i < numAssets; ++i)
-                portfolioReturn += optimalWeights[i] * outSample[i][t];
-            oosReturn += portfolioReturn;
+                portRet += optimalWeights[i] * outSample[i][t];
+            portfolioReturns[timeIndex] = portRet;
         }
-        oosReturn /= outSampleSize;
+//        int tStep = start + inSampleSize;  // current OOS start index in global time
+//        saveWeightsAndReturnsByTime(
+//            tStep,
+//            optimalWeights,
+//            outSample,
+//            numAssets,
+//            0  // we use the first day of the OOS window for debug (can change to other days)
+//        );
 
-//		// --- Sanity Check: Portfolio Constraints ---
-//		double weightSum = 0.0;
-//		double expectedReturnAchieved = 0.0;
-//		for (int i = 0; i < numAssets; ++i) {
-//    		weightSum += optimalWeights[i];
-//    		expectedReturnAchieved += optimalWeights[i] * inSampleMean[i];
-//		}
-//		std::cout << "  [Check] Sum of Weights = " << std::fixed << std::setprecision(6) << weightSum
-//        		  << ", Expected Return = " << expectedReturnAchieved << std::endl;
-
+        saveReturnsToCSV("oos_portfolio_returns.csv", portfolioReturns, numPeriods);
+        // Cleanup
+        delete[] inSampleMean;
+        delete[] optimalWeights;
+        for (int i = 0; i < numAssets; ++i)
+            delete[] inSampleCov[i];
+        delete[] inSampleCov;
         delete[] inSample;
         delete[] outSample;
     }
+    // ======= Summary: Realized OOS Portfolio Statistics =======
+    double mean, stdev, sharpe;
+    computeReturnStats(portfolioReturns, numPeriods, mean, stdev, sharpe);
+    std::cout << "Annualized Mean: " << mean << ", Stdev: " << stdev << ", Sharpe: " << sharpe << std::endl;
+	delete[] portfolioReturns;
 }
