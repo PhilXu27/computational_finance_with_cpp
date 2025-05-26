@@ -1,6 +1,3 @@
-//
-// Created by Phil Xu on 2025/5/22.
-//
 #include "statistics.h"
 #include <vector>
 #include <cmath>
@@ -9,7 +6,9 @@
 #include <iostream>
 #include <iomanip> // For formatting
 
-void computeMeanVector(double** data, int numAssets, int numReturns, double* meanVectorOut) {
+void computeMeanVector(
+    double** data, int numAssets, int numReturns, double* meanVectorOut
+    ) {
     for (int i = 0; i < numAssets; ++i) {
         double sum = 0.0;
         for (int j = 0; j < numReturns; ++j) {
@@ -19,8 +18,9 @@ void computeMeanVector(double** data, int numAssets, int numReturns, double* mea
     }
 }
 
-
-void computeSampleCovariance(double** data, int numAssets, int numReturns, double** covarianceMatrix) {
+void computeSampleCovariance(
+    double** data, int numAssets, int numReturns, double** covarianceMatrix
+    ) {
     // Step 1: Compute sample means for each asset
     std::vector<double> meanReturns(numAssets, 0.0);
     for (int i = 0; i < numAssets; ++i) {

@@ -8,13 +8,11 @@ int main() {
     const int numPeriods = 700;
     const int inSampleSize = 100;
     const int outSampleSize = 12;
-    const int runPeriods = 2;
-    // const double targetReturn = 0.1;
     const int maxIter = 100;
     const double tol = 1e-6;
     const std::string filePath = "data/asset_returns.csv";
 
-    double** returnMatrix = loadReturns(filePath, numAssets, numPeriods);
+    double **returnMatrix = loadReturns(filePath, numAssets, numPeriods);
     if (!returnMatrix) {
         std::cerr << "Failed to load return data." << std::endl;
         return 1;
@@ -24,13 +22,9 @@ int main() {
         totalReturns.push_back(0.0 + i * 0.005);
     }
     runMultipleRollingBacktest(
-        returnMatrix, numAssets, runPeriods * outSampleSize + outSampleSize + inSampleSize, inSampleSize, outSampleSize,
+        returnMatrix, numAssets, numPeriods, inSampleSize, outSampleSize,
         totalReturns, tol, maxIter
-        );
-    // runRollingBacktest(
-    //     returnMatrix, numAssets, runPeriods * outSampleSize + outSampleSize + inSampleSize, inSampleSize, outSampleSize,
-    //     targetReturn, tol, maxIter
-    //     );
+    );
 
     for (int i = 0; i < numAssets; ++i) {
         delete[] returnMatrix[i];

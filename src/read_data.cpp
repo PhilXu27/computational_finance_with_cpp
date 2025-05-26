@@ -1,16 +1,9 @@
-
 #include <stdio.h>
 #include <fstream>
 #include <stdlib.h>
 #include <sstream>
 #include "csv.h"
 #include "read_data.h"
-
-//g++ -c read_data.cpp
-// g++ -c csv.cpp
-// g++ -o portfolioSolver csv.o read_data.o
-// ./portfolioSolver
-
 
 double string_to_double( const std::string& s )
 {

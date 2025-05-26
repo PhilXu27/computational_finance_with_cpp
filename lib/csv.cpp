@@ -1,8 +1,5 @@
-
-
 #include "csv.h"
 
-// endofline: check for and consume \r, \n, \r\n, or EOF
 int Csv::endofline(char c)
 {
 	int eol;

@@ -1,6 +1,3 @@
-//
-// Created by Phil Xu on 2025/5/22.
-//
 #include "backtester.h"
 #include "statistics.h"
 #include "optimizer.h"
@@ -22,11 +19,15 @@ void runMultipleRollingBacktest(
     std::cout << "=== Running Multiple Rolling Backtests ===" << std::endl;
 
     std::cout << "TargetReturn,Mean,Stdev,Sharpe" << std::endl;
+    std::vector<double> means;
+    std::vector<double> stdevs;
+    std::vector<double> meanAnnualizeds;
+    std::vector<double> stdevAnnualizeds;
+    std::vector<double> sharpes;
 
     for (double targetReturn : targetReturns) {
-        // Format suffix like "_r0050" for target return = 0.005
         std::ostringstream oss;
-        oss << "_r" << std::fixed << std::setprecision(4) << targetReturn * 10000;
+        oss << "_r" << static_cast<int>(targetReturn * 1000);
 
         double mean, stdev, meanAnnualized, stdevAnnualized, sharpe;
         runRollingBacktest(
@@ -38,27 +39,43 @@ void runMultipleRollingBacktest(
             targetReturn,
             tol,
             maxIter,
-            oss.str(),   // fileSuffix
+            oss.str(),
             mean,
             stdev,
             meanAnnualized,
             stdevAnnualized,
             sharpe
         );
-        std::cout << "Target Return: " << targetReturn <<
-            ", Mean: " << mean <<
-            ", Stdev: " << stdev <<
-            ", Annualized Mean: " << meanAnnualized <<
-            ", Annualized Stdev: " << stdevAnnualized <<
-            ", Sharpe: " << sharpe <<
-            std::endl;
+        std::cout << std::fixed
+                  << "Target Return: " << std::setprecision(3) << targetReturn
+                  << ", Mean: " << std::setprecision(4) << mean
+                  << ", Stdev: " << std::setprecision(4) << stdev
+                  << ", Annualized Mean: " << std::setprecision(4) << meanAnnualized
+                  << ", Annualized Stdev: " << std::setprecision(4) << stdevAnnualized
+                  << ", Sharpe: " << std::setprecision(2) << sharpe
+                  << std::endl;
+        means.push_back(mean);
+        stdevs.push_back(stdev);
+        meanAnnualizeds.push_back(meanAnnualized);
+        stdevAnnualizeds.push_back(stdevAnnualized);
+        sharpes.push_back(sharpe);
     }
+    saveSummaryToCSV(
+        "results/summary_results.csv",
+        targetReturns,
+        means,
+        stdevs,
+        meanAnnualizeds,
+        stdevAnnualizeds,
+        sharpes
+    );
 }
 
 void runRollingBacktest(
-    double** returnMatrix, int numAssets, int numPeriods, int inSampleSize, int outSampleSize, double targetReturn,
+    double** returnMatrix, int numAssets, int numPeriods,
+    int inSampleSize, int outSampleSize, double targetReturn,
     double tol, int maxIter,
-    const std::string& fileSuffix,  // e.g. "_r005" or "_r010"
+    const std::string& fileSuffix,
     double& meanOut,
     double& stdevOut,
     double& meanAnnualizedOut,
@@ -69,7 +86,10 @@ void runRollingBacktest(
     for (int t = 0; t < numPeriods; ++t)
         portfolioReturns[t] = NAN;
 
-    for (int start = 0; start + inSampleSize + outSampleSize <= numPeriods; start += outSampleSize) {
+    for (
+        int start = 0;
+        start + inSampleSize + outSampleSize <= numPeriods;
+        start += outSampleSize) {
         // Step 0: Allocate sliced in-sample and out-sample windows
         double** inSample = new double*[numAssets];
         double** outSample = new double*[numAssets];
@@ -91,7 +111,15 @@ void runRollingBacktest(
 
         // Step 2: Solve the Markowitz optimization
         double* optimalWeights = new double[numAssets];
-        solveMarkowitzPortfolio(inSampleCov, inSampleMean, targetReturn, numAssets, optimalWeights, tol, maxIter);
+        solveMarkowitzPortfolio(
+            inSampleCov,
+            inSampleMean,
+            targetReturn,
+            numAssets,
+            optimalWeights,
+            tol,
+            maxIter
+            );
         // Step 3: Evaluate OOS performance
         // Compute and store OOS portfolio returns (time-aligned)
         for (int t = 0; t < outSampleSize; ++t) {
@@ -102,7 +130,23 @@ void runRollingBacktest(
             portfolioReturns[timeIndex] = portRet;
         }
 
-
+        // Save example weight files for report.
+        if (start == 0 && std::abs(targetReturn - 0.05) < 1e-6) {
+          double achievedReturn = 0.0, sumWeights = 0.0;
+    		for (int i = 0; i < numAssets; ++i) {
+        		achievedReturn += optimalWeights[i] * inSampleMean[i];
+        		sumWeights += optimalWeights[i];
+    		}
+    		saveDebugOptimizationResult(
+        		"results/debug_weights_and_returns.csv",
+        		optimalWeights,
+        		inSampleMean,
+        		numAssets,
+        		achievedReturn,
+        		sumWeights,
+        		targetReturn
+    		);
+		}
         // Cleanup
         delete[] inSampleMean;
         delete[] optimalWeights;
@@ -114,8 +158,15 @@ void runRollingBacktest(
     }
 
     // ======= Summary: Realized OOS Portfolio Statistics =======
-    std::string filename = "oos_portfolio_returns" + fileSuffix + ".csv";
+    std::string filename = "results/oos_portfolio_returns" + fileSuffix + ".csv";
     saveReturnsToCSV(filename.c_str(), portfolioReturns, numPeriods);
-    computeReturnStats(portfolioReturns, numPeriods, meanOut, stdevOut, sharpeOut, meanAnnualizedOut, stdevAnnualizedOut);
+    computeReturnStats(
+        portfolioReturns,
+        numPeriods,
+        meanOut,
+        stdevOut,
+        sharpeOut,
+        meanAnnualizedOut,
+        stdevAnnualizedOut);
 	delete[] portfolioReturns;
 }

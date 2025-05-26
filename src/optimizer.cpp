@@ -1,21 +1,15 @@
-//
-// Created by Phil Xu on 2025/5/22.
-//
 #include "optimizer.h"
 #include <iostream>
 #include <vector>
 #include <cstring> // for memset
 #include <iomanip> // For formatting
 
-// External solver assumed
-void conjugateGradient(double** Q, double* b, double* x, int n, double tol, int maxIter);
-
 void solveMarkowitzPortfolio(
-    double** covariance,      // Σ: N x N
-    const double* mean,       // r̄: N
-    double targetReturn,      // r̄_P
-    int numAssets,            // N
-    double* weightsOut,       // Output: w (length N)
+    double** covariance,
+    const double* mean,
+    double targetReturn,
+    int numAssets,
+    double* weightsOut,
     double tol,
     int maxIter
 ) {
